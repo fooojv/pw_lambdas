@@ -1,0 +1,12 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+
+node_modules/
+.eslintcache
+
+.DS_Store
+package-lock.json
+.vscode
