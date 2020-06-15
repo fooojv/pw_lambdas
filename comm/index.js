@@ -206,7 +206,6 @@ function saveStatusToFireStore(status, error, debug) { return new Promise(async 
 
 function send(influxStr, data, cb = ()=>{} )
 { 
-  console.log(data);
   fetch(influxDBAPIURI, {
     method: 'POST',
     body:    influxStr,
