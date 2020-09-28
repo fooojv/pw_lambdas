@@ -1,9 +1,0 @@
-{
-  "name": "comm-in",
-  "version": "0.0.4",
-  "dependencies": {
-    "@google-cloud/firestore": "^3.4.1",
-    "@google-cloud/pubsub": "^1.4.0",
-    "node-fetch": "^2.6.0"
-  }
-}
