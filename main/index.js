@@ -36,8 +36,7 @@ async function SaveStatus(particleId, statusStr, cb = ()=>{})  {
   await _saveStatusToFireStore(mchData.mchDocId, gl)
 
   let influxStr = `status,vers=0.7.2,mchId=${mchData.mchId},stId=${storeData.stId} glstr=${gl.glstr},glpur=${gl.glpur},glmin=${gl.glmin} ${timestamp}\n`
-  influxStr     += `errors,vers=0.7.2,mchId=${mchData.mchId},stId=${storeData.stId} drippan=${error.drippan},tnklvl=${error.tnklvl},aftrfilter=${error.aftrfilter},sumpovr=${error.sumpovr},uvbulb=${error.uvbulb},dispwr=${error.dispwr} ${timestamp}\n`
-  influxStr     += `debug,vers=0.7.2,mchId=${mchData.mchId},stId=${storeData.stId} loop=${debug.loop},mloop=${debug.mloop},aloop=${debug.aloop} ${timestamp}`
+  influxStr     += `errors,vers=0.7.2,mchId=${mchData.mchId},stId=${storeData.stId} drippan=${error.drippan},tnklvl=${error.tnklvl},aftrfilter=${error.aftrfilter},sumpovr=${error.sumpovr},uvbulb=${error.uvbulb},dispwr=${error.dispwr} ${timestamp}`
   
   _send(influxStr, Object.assign(info, status, error, mchData, {timestamp}), cb);
 }
@@ -118,10 +117,16 @@ async function SaveReportConnection(cb = ()=>{}) {
 function _routePubIn(msg, cb = ()=>{}) {
   let data = Buffer.from(msg.data, 'base64').toString()
 
-  if (data === 'reportconnectioncron')                                                  SaveReportConnection(cb)
-  else if (msg && msg.attributes && msg.attributes.event === 'pw_status')               SaveStatus(msg.attributes.device_id, data, cb)
-  else if (msg && msg.attributes && msg.attributes.event === 'pw_startup')              SaveStartup(msg.attributes.device_id, data, cb)
-  else if (msg && msg.attributes && msg.attributes.event === 'pw_servicedoor')          SaveServiceDoor(msg.attributes.device_id, data, cb)
+  if (data === 'reportconnectioncron' || data === 'reportconnectioncron_dev')             SaveReportConnection(cb)
+
+  if (msg && msg.attributes && msg.attributes.event) {
+    let ev = msg.attributes.event
+
+    if (ev == 'pw_status' || ev == 'pw_dev_status')                                       SaveStatus(msg.attributes.device_id, data, cb)
+    else if (ev == 'pw_startup' || ev == 'pw_dev_startup')                                SaveStartup(msg.attributes.device_id, data, cb)
+    else if (ev == 'pw_servicedoor' || ev == 'pw_dev_servicedoor')                        SaveServiceDoor(msg.attributes.device_id, data, cb)
+  }
+
 }
 
 
@@ -136,7 +141,7 @@ function _getDataFromStr(statusStr) {
   let split = statusStr.split(',')
 
 
-  if (split[0] === "0.8.2")
+  if (split[0] === "0.8.3")
   {
     for (let i = 0; i < split.length; i++) {
       if (i === 0)    info.version      = split[0];
@@ -155,37 +160,11 @@ function _getDataFromStr(statusStr) {
       if (i === 11)   error.dispwr      = (Number)(split[11]);
       if (i === 12)   error.flowstuk    = (Number)(split[12]);
       
-      if (i === 13)   debug.loop        = (Number)(split[13]);
-      if (i === 14)   debug.mloop       = (Number)(split[14]);
-      if (i === 15)   debug.aloop       = (Number)(split[15]);
-
-      if (i === 16)   timestamp         = (Number)(split[16]);
+      if (i === 13)   timestamp         = (Number)(split[13]);
     }
   }
-  else if (split[0] === "0.8.1") 
+  else if (split[0] === "0.8.2") 
   {
-    for (let i = 0; i < split.length; i++) {
-      if (i === 0)    info.version      = split[0];
-      if (i === 1)    info.cellsig      = (Number)(split[1]);
-      if (i === 2)    info.cellquality  = (Number)(split[2]);
-
-      if (i === 3)    status.glstr      = (Number)(split[3]);
-      if (i === 4)    status.glpur      = (Number)(split[4]);
-      if (i === 5)    status.glmin      = (Number)(split[5]);
-      
-      if (i === 6)    error.drippan     = (Number)(split[6]);
-      if (i === 7)    error.tnklvl      = (Number)(split[7]);
-      if (i === 8)    error.aftrfilter  = (Number)(split[8]);
-      if (i === 9)    error.sumpovr     = (Number)(split[9]);
-      if (i === 10)   error.uvbulb      = (Number)(split[10]);
-      if (i === 11)   error.dispwr      = (Number)(split[11]);
-      
-      if (i === 12)   debug.loop        = (Number)(split[12]);
-      if (i === 13)   debug.mloop       = (Number)(split[13]);
-      if (i === 14)   debug.aloop       = (Number)(split[14]);
-
-      if (i === 15)   timestamp         = (Number)(split[15]);
-    }
   }
 
   return { info, status, error, debug, timestamp }
@@ -269,7 +248,7 @@ function _send(influxStr, data, cb = ()=>{} ) {
 if (process.platform === 'darwin') {
   let config = {
     gcpProjectId: 'purewatertech',
-    gcpPubSubSubscriptionName: 'comm.in_cli',
+    gcpPubSubSubscriptionName: 'cli_dev',
     gcpServiceAccountKeyFilePath: '/Users/xenition/.ssh/googlekeys/purewatertech-ccd15301df05.json'
   }
   
